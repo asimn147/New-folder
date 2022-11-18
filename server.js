@@ -1,15 +1,3 @@
-/*********************************************************************************
-*  WEB322 – Assignment 04
-*  I declare that this assignment is my own work in accordance with Seneca  Academic Policy.  No part 
-*  of this assignment has been copied manually or electronically from any other source 
-*  (including 3rd party web sites) or distributed to other students.
-* 
-*  Name: __Asim Naveed____________ Student ID: _141631192_____________ Date: ____Nov-4 2022____________
-*
-*  Online (Heroku) Link: https://itchy-crayfish.cyclic.app
-*
-********************************************************************************/ 
-
 const HTTP_PORT = process.env.PORT || 8080;
 
 const express = require('express');
@@ -64,6 +52,10 @@ app.use(function (req, res, next) {
   next();
 });
 
+// app.post('/students/add', function(req, res){
+//   console.log(req);
+// });
+
 
 
 app.get('/', (req, res, next) => {
@@ -78,21 +70,28 @@ app.get('/students', (req, res, next) => {
   if (req.query.status) {
     return data.getStudentsByStatus(req.query.status)
       .then(data => { res.render("students", { students: data }) })
-      .catch(err => console.log(err))
+      .catch(err => {
+        res.render("students", { message: err })
+      })
   }
   if (req.query.program) {
     return data.getStudentsByProgramCode(req.query.program)
       .then(data => { res.render("students", { students: data }) })
-      .catch(err => console.log(err))
+      .catch(err => {
+        res.render("students", { message: err })
+      })
   }
   if (req.query.credential) {
     return data.getStudentsByExpectedCredential(req.query.credential)
       .then(data => { res.render("students", { students: data }) })
-      .catch(err => console.log(err))
+      .catch(err =>{
+        res.render("students", { message: err });
+      })
   }
   data
     .getAllStudents()
     .then((data) => {
+      console.log(data);
       res.render("students", { students: data })
     })
     .catch((err) => {
@@ -106,20 +105,26 @@ app.get('/student/:sid', (req, res) => {
     .then((data) => {
       res.render("student", { student: data })
     })
-    .catch(err => console.log(err))
+    .catch(err => {
+      res.status(404).send("Student Not found");
+    })
 })
 
 app.post('/students/add', (req, res) => {
   data.addStudent(req.body).then(
     res.redirect('/students')
   )
-    .catch(err => console.log(err))
+    .catch(err => {
+      res.status(500).send("Unable to add Student");
+    })
 })
 
 app.post("/student/update", (req, res) => {
   data.updateStudent(req.body).then(() => {
     res.redirect("/students");
-  }).catch(err => console.log(err))
+  }).catch(err => {
+    res.status(500).send("Unable to Update Student");
+  })
 });
 
 
@@ -127,11 +132,11 @@ app.get('/intlstudents', (req, res, next) => {
   data
     .getInternationalStudents()
     .then((data) => {
-      res.json(data);
+      res.render("students", { students: data })
     })
     .catch((err) => {
       console.log('Error retrieving managers: ' + err);
-      res.json({ message: err });
+      res.render("students", { message: err })
     });
 });
 
@@ -139,16 +144,86 @@ app.get('/programs', (req, res, next) => {
   data
     .getPrograms()
     .then((data) => {
-      res.json(data);
+      res.render('programs', { programs:data });
     })
     .catch((err) => {
       console.log('Error retrieving departments: ' + err);
-      res.json({ message: err });
+      res.render('programs', { message:err });
     });
 });
 
+app.get('/programs/add', (req, res, next) => {
+    res.render('addProgram');
+});
+
+app.post('/programs/add', (req, res, next) => {
+  data
+    .addProgram(req.body)
+    .then(()=>{
+       res.redirect('/programs');
+    }).catch(err => {
+      res.status(500).send("Unable to add program");
+    });
+});
+
+app.get('/programs/:pcode', (req, res) => {
+  data.getProgramByCode(req.params.pcode)
+    .then((data) => {
+      res.render("program", { program: data })
+    })
+    .catch(err => {
+      res.status(404).send("Program Not Found"); 
+    })
+})
+
+app.get('/programs/update', (req, res) => {
+  data
+    .updateProgram(req.body)
+    .then((data) => {
+      res.redirect('/programs');
+    })
+    .catch((err) => {
+      res.status(500).send("Unable to update");
+    });
+});
+
+app.get('/programs/:programCode', (req, res, next) => {
+  data
+    .getProgramByCode(req.params.programCode)
+    .then((data) => {
+      res.render('programs', { programs:data });
+    })
+    .catch((err) => {
+      console.log('Error retrieving departments: ' + err);
+      // res.render('programs', { message:err });
+      res.status(404).send("Program not found");
+    });
+});
+
+app.get('/students/delete/:id', (req, res) => {
+  return data.deleteStudenById(req.params.id)
+  .then(data => { 
+    res.redirect("/students") })
+  .catch(err => {
+    res.status(404).send("student Not Found"); 
+  })
+});
+
+app.get('/programs/delete/:id', (req, res) => {
+  return data.deleteProgramByCode(req.params.id)
+  .then(data => { 
+    res.redirect("/programs") })
+  .catch(err => {
+    res.status(404).send("program not found");
+  })
+});
+
 app.get('/students/add', (req, res) => {
-  res.render('addStudent');
+  data.getPrograms().then((programs)=>{
+    res.render('addStudent', {programs:programs});
+  }).catch(()=>{
+    res.render('addStudent', {message:'no program found'});
+  })
 })
 app.get('/images/add', (req, res) => {
   res.render('AddImage');
